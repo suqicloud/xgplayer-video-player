@@ -1,9 +1,9 @@
 <?php
 /*
-Plugin Name: 西瓜 M3U8视频播放器
+Plugin Name: 西瓜M3U8视频播放器
 Plugin URI: https://www.jingxialai.com/4620.html
 Description: 集成字节跳动西瓜视频播放器实现mp4、m3u8视频的播放，编辑器有快捷键，支持多集，短代码[xgplayer_video url="视频1.mp4,视频2.m3u8"]
-Version: 1.1
+Version: 1.4
 Author: Summer
 Author URI: https://www.jingxialai.com
 License: GPL2
@@ -64,14 +64,14 @@ $xgplayer_instance_count = 0;
 // 加载js和css
 function xgplayer_enqueue_scripts() {
     if (!is_admin() && has_shortcode(get_the_content(), 'xgplayer_video')) {
-    wp_register_script('xgplayer-core', plugin_dir_url(__FILE__) . 'dist/index.min.js', array(), '3.0.16', true);
-    wp_register_script('xgplayer-hls', plugin_dir_url(__FILE__) . 'hls/index.min.js', array('xgplayer-core'), '3.0.16', true);
-    wp_register_script('xgplayer-mp4', plugin_dir_url(__FILE__) . 'mp4/index.min.js', array('xgplayer-core'), '3.0.16', true);
+    wp_register_script('xgplayer-core', plugin_dir_url(__FILE__) . 'dist/index.min.js', array(), '3.0.20', true);
+    wp_register_script('xgplayer-hls', plugin_dir_url(__FILE__) . 'hls/index.min.js', array('xgplayer-core'), '3.0.20', true);
+    wp_register_script('xgplayer-mp4', plugin_dir_url(__FILE__) . 'mp4/index.min.js', array('xgplayer-core'), '3.0.20', true);
     wp_enqueue_script('xgplayer-core');
     wp_enqueue_script('xgplayer-hls');
     wp_enqueue_script('xgplayer-mp4');
 
-    wp_register_style('xgplayer-style', plugin_dir_url(__FILE__) . 'dist/index.min.css', array(), '3.0.16');
+    wp_register_style('xgplayer-style', plugin_dir_url(__FILE__) . 'dist/index.min.css', array(), '3.0.20');
     wp_enqueue_style('xgplayer-style');
     }
 }
@@ -89,12 +89,17 @@ function xgplayer_video_shortcode($atts) {
 
     // 获取视频源
     $player_id = 'xgplayer_' . $xgplayer_instance_count;
+    $video_url = esc_url($atts['url']);
+
+    // 判断是否为Bilibili视频链接
+    $is_bilibili = preg_match('/https?:\/\/www\.bilibili\.com\/video\/BV([0-9a-zA-Z]+)/', $video_url, $matches);
+    $bvid = $is_bilibili ? $matches[1] : '';
 
     ob_start();
     ?>
     <style>
         .xgplayer-video-container {
-            background-color: #fff;
+            /* background-color: #fff;*/
             width: 100%; /* 宽度 */
             max-width: 800px; /* 最大宽度 */
             height: auto; /* 高度 */
@@ -122,8 +127,8 @@ function xgplayer_video_shortcode($atts) {
             font-size: 14px; /* 调整按钮的字体大小 */
             transition-duration: 0.4s;
             cursor: pointer;
-            width: auto; /* 使用 auto 宽度 */
-            height: auto; /* 使用 auto 高度 */
+            width: auto; /* 自动宽度 */
+            height: auto; /* 自动高度 */
         }
         .xgplayer-video-container .episode-button:hover {
             background-color: #0056b3;
@@ -141,7 +146,20 @@ function xgplayer_video_shortcode($atts) {
     </style>
     <div class="xgplayer-video-container">
         <div class="xgplayer-video-wrapper">
-            <div id="<?php echo esc_attr($player_id); ?>" class="xgplayer"></div>
+            <?php if ($is_bilibili): ?>
+                <!-- 如果是Bilibili链接，用iframe方式嵌入 -->
+                <iframe src="//player.bilibili.com/player.html?bvid=<?php echo esc_attr($bvid); ?>&autoplay=0" 
+                        scrolling="no" 
+                        border="0" 
+                        frameborder="no" 
+                        framespacing="0" 
+                        allowfullscreen="true" 
+                        width="100%" 
+                        height="500px">
+                </iframe>
+            <?php else: ?>
+                <div id="<?php echo esc_attr($player_id); ?>" class="xgplayer"></div>
+            <?php endif; ?>
         </div>
         <div class="episode-buttons-wrapper">
             <div id="episode_buttons_<?php echo $xgplayer_instance_count; ?>" class="episode-buttons"></div>
