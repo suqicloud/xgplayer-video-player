@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: 西瓜M3U8视频播放器
+Plugin Name: 西瓜HTML5视频播放器
 Plugin URI: https://www.jingxialai.com/4620.html
 Description: 集成字节跳动西瓜视频播放器实现mp4、m3u8视频的播放，编辑器有快捷键，支持多集，短代码[xgplayer_video url="视频1.mp4,视频2.m3u8"]
 Version: 1.4
