@@ -2,7 +2,7 @@
 /*
 Plugin Name: 西瓜HTML5视频播放器
 Plugin URI: https://www.jingxialai.com/4620.html
-Description: 集成字节跳动西瓜视频播放器实现mp4、m3u8视频的播放，编辑器有快捷键，支持多集，短代码[xgplayer_video url="视频1.mp4,视频2.m3u8"]
+Description: 基于字节跳动西瓜HTML5播放器实现mp4、m3u8视频的播放，编辑器有快捷键，支持多集，短代码[xgplayer_video url="视频1.mp4,视频2.m3u8"]
 Version: 1.4
 Author: Summer
 Author URI: https://www.jingxialai.com
@@ -182,6 +182,8 @@ function xgplayer_video_shortcode($atts) {
             player<?php echo $xgplayer_instance_count; ?> = new Player({
                 id: '<?php echo esc_js($player_id); ?>',
                 url: urls[index],
+                lang:"zh",
+                volume: 0.5,
                 playsinline: true,
                 rotateFullscreen: true,
                 enableContextmenu: false,//禁用右键
