@@ -3,7 +3,7 @@
 Plugin Name: 西瓜HTML5视频播放器
 Plugin URI: https://www.jingxialai.com/4620.html
 Description: 基于字节跳动西瓜HTML5播放器实现mp4、m3u8视频的播放，编辑器有快捷键，支持多集，短代码[xgplayer_video url="视频1.mp4,视频2.m3u8"]
-Version: 1.4
+Version: 1.5
 Author: Summer
 Author URI: https://www.jingxialai.com
 License: GPL2
@@ -62,7 +62,7 @@ add_action('init', 'wp_xgplayer_gutenberg_register_block');
 $xgplayer_instance_count = 0;
 
 // 加载js和css
-function xgplayer_enqueue_scripts() {
+function xgplayer_enqueue_scripts($is_audio = false) {
     if (!is_admin() && has_shortcode(get_the_content(), 'xgplayer_video')) {
     wp_register_script('xgplayer-core', plugin_dir_url(__FILE__) . 'dist/index.min.js', array(), '3.0.20', true);
     wp_register_script('xgplayer-hls', plugin_dir_url(__FILE__) . 'hls/index.min.js', array('xgplayer-core'), '3.0.20', true);
@@ -73,7 +73,15 @@ function xgplayer_enqueue_scripts() {
 
     wp_register_style('xgplayer-style', plugin_dir_url(__FILE__) . 'dist/index.min.css', array(), '3.0.20');
     wp_enqueue_style('xgplayer-style');
+
+    // 如果是音频，加载音频相关的js和css
+    if ($is_audio) {
+        wp_register_script('xgplayer-music', plugin_dir_url(__FILE__) . 'music/index.min.js', array('xgplayer-core'), '3.0.20', true);
+        wp_enqueue_script('xgplayer-music');
+        wp_register_style('xgplayer-music-style', plugin_dir_url(__FILE__) . 'music/index.min.css', array(), '3.0.20');
+        wp_enqueue_style('xgplayer-music-style');
     }
+}
 }
 add_action('wp_enqueue_scripts', 'xgplayer_enqueue_scripts');
 
@@ -82,7 +90,8 @@ function xgplayer_video_shortcode($atts) {
     global $xgplayer_instance_count;
     
     $atts = shortcode_atts(array(
-        'url' => ''
+        'url' => '',
+        'poster' => '', // 封面图参数
     ), $atts, 'xgplayer_video');
 
     $xgplayer_instance_count++;
@@ -90,7 +99,13 @@ function xgplayer_video_shortcode($atts) {
     // 获取视频源
     $player_id = 'xgplayer_' . $xgplayer_instance_count;
     $video_url = esc_url($atts['url']);
+    $poster_url = esc_url($atts['poster']); // 获取封面图URL
 
+    // 判断文件格式（音频格式）
+    $is_audio = preg_match('/\.(mp3|m4a|flac|gp|ogg|wav)$/i', $video_url);
+    // 加载脚本和样式
+    xgplayer_enqueue_scripts($is_audio);
+    
     // 判断是否为Bilibili视频链接
     $is_bilibili = preg_match('/https?:\/\/www\.bilibili\.com\/video\/BV([0-9a-zA-Z]+)/', $video_url, $matches);
     $bvid = $is_bilibili ? $matches[1] : '';
@@ -148,7 +163,7 @@ function xgplayer_video_shortcode($atts) {
         <div class="xgplayer-video-wrapper">
             <?php if ($is_bilibili): ?>
                 <!-- 如果是Bilibili链接，用iframe方式嵌入 -->
-                <iframe src="//player.bilibili.com/player.html?bvid=<?php echo esc_attr($bvid); ?>&autoplay=0" 
+                <iframe src="https://player.bilibili.com/player.html?bvid=<?php echo esc_attr($bvid); ?>&autoplay=0" 
                         scrolling="no" 
                         border="0" 
                         frameborder="no" 
@@ -157,7 +172,11 @@ function xgplayer_video_shortcode($atts) {
                         width="100%" 
                         height="500px">
                 </iframe>
+            <?php elseif ($is_audio): ?>
+                <!-- 音频播放器 -->
+                <div id="<?php echo esc_attr($player_id); ?>" class="xgplayer"></div>
             <?php else: ?>
+                <!-- 普通视频播放器 -->
                 <div id="<?php echo esc_attr($player_id); ?>" class="xgplayer"></div>
             <?php endif; ?>
         </div>
@@ -169,6 +188,7 @@ function xgplayer_video_shortcode($atts) {
     document.addEventListener("DOMContentLoaded", function() {
         var urls = '<?php echo esc_js($atts['url']); ?>'.split(',');
         var player<?php echo $xgplayer_instance_count; ?>;
+        var isAudio = <?php echo $is_audio ? 'true' : 'false'; ?>;
         var shouldAutoplay = false;
         var currentIndex = 0;
 
@@ -177,6 +197,26 @@ function xgplayer_video_shortcode($atts) {
                 player<?php echo $xgplayer_instance_count; ?>.destroy();
             }
 
+        if (isAudio) {
+            player<?php echo $xgplayer_instance_count; ?> = new Player({
+                id: '<?php echo esc_js($player_id); ?>',
+                url: urls[0],
+                mediaType: 'audio',
+                volume: 0.8,
+                width: '100%',
+                height: 50,
+                controls: {
+                    initShow: true,
+                    mode: 'flex'
+                },
+                presets: ['default', window.MusicPreset],
+                ignores: ['playbackrate'],
+                marginControls: true,
+                videoConfig: {
+                    crossOrigin: "anonymous"
+                },
+            });
+        } else {
             //播放器参数
             var plugin = (urls[index].substr(-5) === '.m3u8') ? 'HlsJsPlugin' : 'Mp4Plugin';//只支持m3u8和mp4
             player<?php echo $xgplayer_instance_count; ?> = new Player({
@@ -188,13 +228,10 @@ function xgplayer_video_shortcode($atts) {
                 rotateFullscreen: true,
                 enableContextmenu: false,//禁用右键
                 autoplay: shouldAutoplay,//因为增加了多个视频，所以选择shouldAutoplay根据视频判断是否自动播放
+                poster: '<?php echo esc_js($poster_url); ?>', // 传递封面图参数
+                mini: true, //开启小窗插件
                 'type': 'auto',
-                "playbackRate": [
-                    0.5,
-                    1,
-                    1.5,
-                    2
-                ],
+                "playbackRate": [0.5,1,1.5,2],
                 "screenShot": true,
                 "videoAttributes": {
                     "crossOrigin": "anonymous"
@@ -205,6 +242,7 @@ function xgplayer_video_shortcode($atts) {
                 "width": '100%',
             });
         }
+    }
 
         createPlayer(0);
 
