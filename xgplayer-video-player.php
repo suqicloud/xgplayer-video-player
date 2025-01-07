@@ -236,6 +236,10 @@ function xgplayer_video_shortcode($atts) {
                 "videoAttributes": {
                     "crossOrigin": "anonymous"
                 },
+                "rotate": {
+                    "clockwise": false,
+                    "innerRotate": true
+                },                
                 "pip": true,
                 "closeVideoClick": true,
                 "plugins": [window[plugin]],
