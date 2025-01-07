@@ -102,7 +102,7 @@ function xgplayer_video_shortcode($atts) {
     $poster_url = esc_url($atts['poster']); // 获取封面图URL
 
     // 判断文件格式（音频格式）
-    $is_audio = preg_match('/\.(mp3|m4a|flac|gp|ogg|wav)$/i', $video_url);
+    $is_audio = preg_match('/\.(mp3|m4a|3gp|ogg)$/i', $video_url);
     // 加载脚本和样式
     xgplayer_enqueue_scripts($is_audio);
     
